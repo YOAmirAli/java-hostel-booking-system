@@ -1,0 +1,66 @@
+=== SEN-311 HOSTEL BOOKING: REPRODUCIBLE DEMONSTRATION ===
+Note: timestamps use a simulation clock; deposit payment is not real money.
+
+SCENARIO 1 - Competing attempts for last single room
+SUCCESS: Room A-S1 reserved; deposit due 2026-09-25 09:00. [BKG-0001]
+REJECTED: No available SINGLE room in Block A.
+Block A | simulated clock: 2026-09-23 09:00
+SINGLE    0 /  1 free
+DOUBLE    0 /  0 free
+SHARED    0 /  0 free
+
+SCENARIO 2 - Connection lost and same request retried
+SUCCESS: REPLAY (no duplicate action): Room A-S1 reserved; deposit due 2026-09-25 09:00. [BKG-0001]
+SUCCESS: Original request found: room A-S1, current status=PENDING_DEPOSIT, original reference=BKG-0001. [BKG-0001]
+Active bookings for S101: 1
+
+SCENARIO 3 - Unpaid reservation expires after 48 hours
+SUCCESS: No active reservation. Latest booking: ref=BKG-0001, room=A-S1, status=EXPIRED, created=2026-09-23 09:00, deposit due=2026-09-25 09:00, paid=not yet [BKG-0001]
+SUCCESS: Room A-S1 reserved; deposit due 2026-09-27 10:00. [BKG-0002]
+Block A | simulated clock: 2026-09-25 10:00
+SINGLE    0 /  1 free
+DOUBLE    0 /  0 free
+SHARED    0 /  0 free
+
+SCENARIO 4 - Paid bookings remain confirmed; payment retry is safe
+SUCCESS: Deposit recorded; booking confirmed. [BKG-0002]
+SUCCESS: REPLAY (no duplicate action): Deposit recorded; booking confirmed. [BKG-0002]
+SUCCESS: ref=BKG-0002, room=A-S1, status=CONFIRMED, created=2026-09-25 10:00, deposit due=2026-09-27 10:00, paid=2026-09-25 10:00 [BKG-0002]
+SCENARIO 5 - Cancellation returns room to inventory
+SUCCESS: Cancelled and released room A-S1. [BKG-0002]
+Block A | simulated clock: 2026-09-27 11:00
+SINGLE    1 /  1 free
+DOUBLE    0 /  0 free
+SHARED    0 /  0 free
+
+SCENARIO 6 - Switching room preserves unpaid deposit deadline
+SUCCESS: Room A-S1 reserved; deposit due 2026-09-25 09:00. [BKG-0001]
+SUCCESS: Switched from A-S1 to A-D1; payment/deadline preserved. [BKG-0002]
+SUCCESS: ref=BKG-0002, room=A-D1, status=PENDING_DEPOSIT, created=2026-09-24 09:00, deposit due=2026-09-25 09:00, paid=not yet [BKG-0002]
+SUCCESS: No active reservation. Latest booking: ref=BKG-0002, room=A-D1, status=EXPIRED, created=2026-09-24 09:00, deposit due=2026-09-25 09:00, paid=not yet [BKG-0002]
+Block A | simulated clock: 2026-09-25 09:00
+SINGLE    1 /  1 free
+DOUBLE    1 /  1 free
+SHARED    0 /  0 free
+
+SCENARIO 7 - Timestamped audit trails
+AUDIT TRAIL (9 events)
+[2026-09-23 09:00] STUDENT_REGISTERED | S101 | Accessibility requirement=false
+[2026-09-23 09:00] STUDENT_REGISTERED | S102 | Accessibility requirement=false
+[2026-09-23 09:00] BOOKED | S101 | Room=A-S1; ref=BKG-0001; deposit due=2026-09-25 09:00
+[2026-09-25 10:00] CLOCK_ADVANCED | SYSTEM | Advanced 49 h; now=2026-09-25 10:00
+[2026-09-25 10:00] RELEASED_UNPAID | S101 | Room=A-S1; ref=BKG-0001
+[2026-09-25 10:00] BOOKED | S102 | Room=A-S1; ref=BKG-0002; deposit due=2026-09-27 10:00
+[2026-09-25 10:00] PAYMENT_RECEIVED | S102 | Room=A-S1; ref=BKG-0002
+[2026-09-27 11:00] CLOCK_ADVANCED | SYSTEM | Advanced 49 h; now=2026-09-27 11:00
+[2026-09-27 11:00] CANCELLED | S102 | Room=A-S1; ref=BKG-0002
+
+AUDIT TRAIL (6 events)
+[2026-09-23 09:00] STUDENT_REGISTERED | S201 | Accessibility requirement=false
+[2026-09-23 09:00] BOOKED | S201 | Room=A-S1; ref=BKG-0001; deposit due=2026-09-25 09:00
+[2026-09-24 09:00] CLOCK_ADVANCED | SYSTEM | Advanced 24 h; now=2026-09-24 09:00
+[2026-09-24 09:00] SWITCHED | S201 | Old=A-S1/BKG-0001; new=A-D1/BKG-0002; status=PENDING_DEPOSIT
+[2026-09-25 09:00] CLOCK_ADVANCED | SYSTEM | Advanced 24 h; now=2026-09-25 09:00
+[2026-09-25 09:00] RELEASED_UNPAID | S201 | Room=A-D1; ref=BKG-0002
+
+=== END DEMONSTRATION ===
